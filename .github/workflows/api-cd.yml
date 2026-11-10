@@ -21,7 +21,7 @@ jobs:
       - name: Docker build (no cloud push without approved infrastructure)
         run: docker build -t rutitas-api:staging -f Rutitas.Api/Rutitas.Api/Dockerfile Rutitas.Api
       - name: Scan container image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: rutitas-api:staging
           format: table
