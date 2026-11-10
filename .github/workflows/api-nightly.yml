@@ -1,0 +1,22 @@
+name: Rutitas Nightly Verification
+on:
+  schedule:
+    - cron: '15 7 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Rutitas.Api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Audit NuGet packages
+        run: dotnet restore Rutitas.Api.slnx -p:NuGetAudit=true -p:NuGetAuditLevel=high -warnaserror
+      - name: Run automated tests
+        run: dotnet test Rutitas.Api.slnx -c Release

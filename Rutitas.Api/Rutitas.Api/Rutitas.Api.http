@@ -1,0 +1,155 @@
+@testEmail = prueba.corta@example.com
+@testPassword = PruebaRutitas2026!
+
+### ENDPOINT 1 - REGISTRO
+POST https://localhost:7291/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}",
+  "displayName": "Prueba Rutitas",
+  "phone": null
+}
+
+### ENDPOINT 2 - LOGIN
+# @name loginRutitas
+POST https://localhost:7291/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+
+
+### LOGIN - Contraseña incorrecta
+POST https://localhost:7291/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "ContrasenaIncorrecta2026!"
+}
+
+
+### ENDPOINT 3 - CONSULTAR MI PERFIL
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginRutitas.response.body.$.accessToken}}
+
+
+### LOGIN - Obtener token para prueba de perfil
+# @name loginPerfil
+POST https://localhost:7291/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### PERFIL - Usuario autenticado
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Accept: application/json
+
+###ENDPOINT 4
+### PERFIL - Actualizar nombre y telefono
+PATCH https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Usuario Rutitas Actualizado",
+  "phone": "+525512345678"
+}
+
+### PERFIL - Verificar cambios guardados
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Accept: application/json
+
+
+
+### PERFIL - Intentar modificar rol (debe fallar)
+PATCH https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+###ENDPOINT 5
+
+### 1. LOGIN - Obtener JWT para logout
+# @name loginLogout
+POST https://localhost:7291/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### 2. PERFIL - Antes de cerrar sesion
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginLogout.response.body.$.accessToken}}
+Accept: application/json
+
+### 3. LOGOUT - Revocar JWT
+POST https://localhost:7291/api/v1/auth/logout
+Authorization: Bearer {{loginLogout.response.body.$.accessToken}}
+
+### 4. PERFIL - JWT revocado
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginLogout.response.body.$.accessToken}}
+Accept: application/json
+
+
+### LOGIN NUEVO - Prueba del endpoint 6
+# @name loginRutas
+POST https://localhost:7291/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+  
+
+### ENDPOINT 6 - Listar rutas disponibles
+GET https://localhost:7291/api/v1/routes?page=1&pageSize=20
+Authorization: Bearer {{loginRutas.response.body.$.accessToken}}
+Accept: application/json
+
+
+### ENDPOINT 7 - Ruta inexistente
+GET https://localhost:7291/api/v1/routes/507f1f77bcf86cd799439011
+Authorization: Bearer {{loginRutas.response.body.$.accessToken}}
+Accept: application/json
+
+### ENDPOINT 7 - ID incorrecto
+GET https://localhost:7291/api/v1/routes/abc
+Authorization: Bearer {{loginRutas.response.body.$.accessToken}}
+Accept: application/json
+
+### ENDPOINT 7 - Consultar ruta existente
+GET https://localhost:7291/api/v1/routes/6aeba53b993400c543675e51
+Authorization: Bearer {{loginRutas.response.body.$.accessToken}}
+Accept: application/json
+
+### PRUEBA DE SEGURIDAD - Intentar cambiar rol
+PATCH https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+### VERIFICAR QUE EL ROL SIGUE SIENDO USER
+GET https://localhost:7291/api/v1/users/me
+Authorization: Bearer {{loginPerfil.response.body.$.accessToken}}
+Accept: application/json

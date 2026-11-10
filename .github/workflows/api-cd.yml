@@ -1,0 +1,36 @@
+name: Rutitas CD (manual - staging)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_staging:
+        description: 'Type DEPLOY-STAGING to authorize a staging-only build'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  prepare-image:
+    if: inputs.confirm_staging == 'DEPLOY-STAGING'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet test Rutitas.Api/Rutitas.Api.slnx -c Release
+      - name: Docker build (no cloud push without approved infrastructure)
+        run: docker build -t rutitas-api:staging -f Rutitas.Api/Rutitas.Api/Dockerfile Rutitas.Api
+      - name: Scan container image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: rutitas-api:staging
+          format: table
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+      - name: Create SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          image: rutitas-api:staging
+          artifact-name: rutitas-staging-sbom.spdx.json
+# Real Azure deployment intentionally disabled until subscription, OIDC federated credentials,
+# network egress to MongoDB Atlas, environment approval and rollback strategy are authorized.

@@ -1,0 +1,48 @@
+name: Rutitas API CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Rutitas.Api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: NuGet restore with audit
+        run: dotnet restore Rutitas.Api.slnx -p:NuGetAudit=true
+      - name: Build
+        run: dotnet build Rutitas.Api.slnx -c Release --no-restore -warnaserror
+      - name: Unit, integration, security, contract and architecture tests
+        run: dotnet test Rutitas.Api.slnx -c Release --no-build --logger trx --collect:"XPlat Code Coverage" --results-directory TestResults
+      - name: Upload tests & coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutitas-tests
+          path: Rutitas.Api/TestResults
+          if-no-files-found: warn
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  semgrep:
+    runs-on: ubuntu-latest
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config auto --error --metrics=off Rutitas.Api
