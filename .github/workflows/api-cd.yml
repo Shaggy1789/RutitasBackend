@@ -1,4 +1,5 @@
 name: Rutitas CD (manual - staging)
+
 on:
   workflow_dispatch:
     inputs:
@@ -6,20 +7,35 @@ on:
         description: 'Type DEPLOY-STAGING to authorize a staging-only build'
         required: true
         type: string
+
 permissions:
   contents: read
+
+concurrency:
+  group: rutitas-staging-build
+  cancel-in-progress: false
+
 jobs:
   prepare-image:
+    name: Test, build, scan and generate SBOM
     if: inputs.confirm_staging == 'DEPLOY-STAGING'
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
-      - run: dotnet test Rutitas.Api/Rutitas.Api.slnx -c Release
-      - name: Docker build (no cloud push without approved infrastructure)
+
+      - name: Run tests
+        run: dotnet test Rutitas.Api/Rutitas.Api.slnx -c Release
+
+      - name: Build staging image
         run: docker build -t rutitas-api:staging -f Rutitas.Api/Rutitas.Api/Dockerfile Rutitas.Api
+
       - name: Scan container image
         uses: aquasecurity/trivy-action@0.33.1
         with:
@@ -27,10 +43,13 @@ jobs:
           format: table
           exit-code: '1'
           severity: 'CRITICAL,HIGH'
+
       - name: Create SBOM
         uses: anchore/sbom-action@v0
         with:
           image: rutitas-api:staging
           artifact-name: rutitas-staging-sbom.spdx.json
-# Real Azure deployment intentionally disabled until subscription, OIDC federated credentials,
-# network egress to MongoDB Atlas, environment approval and rollback strategy are authorized.
+
+# Real Azure deployment intentionally remains disabled until the provider, subscription,
+# OIDC credentials, network access to MongoDB Atlas, environment approval and rollback
+# strategy are explicitly authorized.
